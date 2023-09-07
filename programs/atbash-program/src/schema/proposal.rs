@@ -10,6 +10,7 @@ pub struct Proposal {
     pub start_date: i64,
     pub end_date: i64,
     pub metadata: [u8; 32],
+    pub point: [u8; 32],
 }
 
 impl Proposal {
@@ -19,5 +20,6 @@ impl Proposal {
         + MAXIMUM_MINT_NUMBER * U64_SIZE
         + I64_SIZE
         + I64_SIZE
+        + U8_SIZE * 32
         + U8_SIZE * 32;
 }

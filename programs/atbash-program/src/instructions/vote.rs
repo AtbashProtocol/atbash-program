@@ -22,20 +22,20 @@ pub struct Vote<'info> {
 
     #[account(mut)]
     pub mint: Account<'info, token::Mint>,
-
+    /// CHECK: Just a pure account
     #[account(seeds = [b"treasurer", &proposal.key().to_bytes()], bump)]
     pub treasurer: AccountInfo<'info>,
 
     #[account(
-      init_if_needed,
-      payer = authority,
+      mut,
       associated_token::mint = mint,
       associated_token::authority = treasurer
     )]
     pub treasury: Box<Account<'info, token::TokenAccount>>,
 
     #[account(
-      mut,
+      init_if_needed,
+      payer = authority,
       associated_token::mint = mint,
       associated_token::authority = authority
     )]
@@ -69,6 +69,11 @@ pub fn exec(ctx: Context<Vote>, amount: u64, candidate: Pubkey) -> Result<()> {
     token::transfer(transfer_ctx, amount)?;
 
     // calc new ballot_boxes
+    for idx in 0..proposal.candidates.len() {
+        if proposal.candidates[idx] == candidate {
+            proposal.ballot_boxes[idx] = amount
+        }
+    }
 
     emit!(VoteEvent {
         proposal: proposal.key(),

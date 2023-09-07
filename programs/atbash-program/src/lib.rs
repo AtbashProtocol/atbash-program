@@ -10,7 +10,10 @@ pub mod errors;
 pub use errors::*;
 
 pub mod constant;
+pub use constant::*;
+
 pub mod utils;
+pub use utils::*;
 
 declare_id!("H7ZkmfbuFeMGWpo78N1vfpqmzxTrRUAvP7VmqEBTxzyA");
 
@@ -25,13 +28,14 @@ pub mod atbash_program {
         start_date: i64,
         end_date: i64,
     ) -> Result<()> {
-        initialize_proposal::exec(ctx, metadata, candidates, start_date, end_date)
+        initialize_proposal::initialize(ctx, metadata, candidates, start_date, end_date)
     }
 
     pub fn vote(ctx: Context<Vote>, amount: u64, candidate: Pubkey) -> Result<()> {
         vote::exec(ctx, amount, candidate)
     }
-}
 
-#[derive(Accounts)]
-pub struct Initialize {}
+    pub fn math(ctx: Context<InitMath>, p: [u8; 32]) -> Result<()> {
+        formulae::exec_math_formulae(ctx, p)
+    }
+}

@@ -26,7 +26,7 @@ pub struct InitializeProposal<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn exec(
+pub fn initialize(
     ctx: Context<InitializeProposal>,
     metadata: [u8; 32],
     candidates: Vec<Pubkey>,
