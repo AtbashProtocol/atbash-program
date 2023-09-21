@@ -2,12 +2,10 @@ use anchor_lang::prelude::*;
 
 #[error_code]
 pub enum ErrorCode {
-    #[msg("Operation overflowed")]
-    Overflow,
-    #[msg("Invalid accounts length")]
-    InvalidDataLength,
-    #[msg("Inconsistent proposal's accounts configuration")]
-    InconsistentProposal,
+    #[msg("Invalid merkle proof")]
+    InvalidMerkleProof,
+    #[msg("Invalid votes")]
+    InvalidVotes,
     #[msg("The community isn't consenting on the proposal yet")]
     NotConsentedProposal,
     #[msg("The proposal isn't started yet")]

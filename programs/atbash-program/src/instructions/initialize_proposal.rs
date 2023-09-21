@@ -9,6 +9,8 @@ pub struct InitializeProposalEvent {
     pub proposal: Pubkey,
     pub authority: Pubkey,
     pub candidates: Vec<Pubkey>,
+    pub merkle_root: [u8; 32],
+    pub metadata: [u8; 32],
 }
 
 #[derive(Accounts)]
@@ -30,6 +32,7 @@ pub fn initialize(
     end_date: i64,
     ballot_boxes: Vec<[u8; 32]>,
     random_numbers: Vec<u64>,
+    merkle_root: [u8; 32],
 ) -> Result<()> {
     let proposal = &mut ctx.accounts.proposal;
     // Validate data
@@ -44,11 +47,14 @@ pub fn initialize(
     proposal.end_date = end_date;
     proposal.ballot_boxes = ballot_boxes;
     proposal.random_numbers = random_numbers;
+    proposal.merkle_root = merkle_root;
 
     emit!(InitializeProposalEvent {
         proposal: proposal.key(),
         authority: proposal.authority.key(),
-        candidates: candidates.clone()
+        candidates: candidates.clone(),
+        merkle_root,
+        metadata
     });
 
     Ok(())

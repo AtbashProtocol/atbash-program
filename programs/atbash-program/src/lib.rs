@@ -29,6 +29,7 @@ pub mod atbash_program {
         end_date: i64,
         ballot_boxes: Vec<[u8; 32]>,
         random_numbers: Vec<u64>,
+        merkle_root: [u8; 32],
     ) -> Result<()> {
         initialize_proposal::initialize(
             ctx,
@@ -38,11 +39,18 @@ pub mod atbash_program {
             end_date,
             ballot_boxes,
             random_numbers,
+            merkle_root,
         )
     }
 
-    pub fn vote(ctx: Context<Vote>, votes: Vec<[u8; 32]>, random_numbers: Vec<u64>) -> Result<()> {
-        vote::exec(ctx, votes, random_numbers)
+    pub fn vote(
+        ctx: Context<Vote>,
+        votes: Vec<[u8; 32]>,
+        random_numbers: Vec<u64>,
+        salt: [u8; 32],
+        proof: Vec<[u8; 32]>,
+    ) -> Result<()> {
+        vote::exec(ctx, votes, random_numbers, salt, proof)
     }
 
     pub fn math(ctx: Context<InitMath>, p: [u8; 32]) -> Result<()> {

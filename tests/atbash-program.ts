@@ -13,6 +13,7 @@ import {
 } from "@coral-xyz/anchor/dist/cjs/utils/token";
 import * as ed from "@noble/ed25519";
 import { BGSG } from "./utils";
+import { Leaf, MerkleDistributor } from "../app";
 
 const { data: PRIMARY_DUMMY_METADATA } = Buffer.from(
   "b2b68b298b9bfa2dd2931cd879e5c9997837209476d25319514b46f7b7911d31",
@@ -50,14 +51,48 @@ describe("atbash-program", () => {
   provider.opts.skipPreflight = true;
   const program = workspace.AtbashProgram as Program<AtbashProgram>;
 
+  let treeData: Leaf[];
   let proposal = web3.Keypair.generate();
+  let myReceipt: web3.PublicKey;
   let alice = web3.Keypair.generate();
+  let aliceReceipt: web3.PublicKey;
   let bob = web3.Keypair.generate();
   let carol = web3.Keypair.generate();
+  let merkleDistributor: MerkleDistributor;
   const candidates = [alice.publicKey, bob.publicKey, carol.publicKey];
 
+  before(async () => {
+    // Tree data
+    provider.connection.requestAirdrop(alice.publicKey, 10 ** 9);
+    provider.connection.requestAirdrop(bob.publicKey, 10 ** 9);
+
+    console.log(provider.publicKey);
+    treeData = [alice.publicKey, provider.publicKey].map((publicKey, i) => ({
+      authority: publicKey,
+      salt: MerkleDistributor.salt(i.toString()),
+    }));
+    merkleDistributor = new MerkleDistributor(treeData);
+
+    // Receipts
+    const [aliceReceiptPublicKey, myReceiptPublickey] = await Promise.all(
+      treeData.map(async ({ authority, salt }, i) => {
+        const [receiptPublicKey] = await web3.PublicKey.findProgramAddressSync(
+          [
+            Buffer.from("receipt"),
+            salt,
+            proposal.publicKey.toBuffer(),
+            authority.toBuffer(),
+          ],
+          program.programId
+        );
+        return receiptPublicKey;
+      })
+    );
+    aliceReceipt = aliceReceiptPublicKey;
+    myReceipt = myReceiptPublickey;
+  });
+
   it("Is create Proposal", async () => {
-    const P = ed.Point.BASE;
     const randomsNumber: BN[] = [];
     const ballotBoxes = candidates.map(() => {
       const r = randomNumber();
@@ -65,15 +100,17 @@ describe("atbash-program", () => {
       const M = ed.Point.ZERO;
       return M.add(pubkey.multiply(r)).toRawBytes(); // C = M + rG
     });
+    const merkleRoot = merkleDistributor.deriveMerkleRoot();
 
     const tx = await program.methods
       .initializeProposal(
         PRIMARY_DUMMY_METADATA as any,
         candidates as any,
-        new BN(currentTime + 10),
-        new BN(currentTime + 20),
+        new BN(currentTime),
+        new BN(currentTime + 5000),
         ballotBoxes as any,
-        randomsNumber as any
+        randomsNumber as any,
+        [...merkleRoot]
       )
       .accounts({
         authority: provider.publicKey,
@@ -87,68 +124,80 @@ describe("atbash-program", () => {
     console.log("ballotBoxes====>", data.ballotBoxes);
   });
 
-  it("Is Vote 15 times for Alice", async () => {
+  it("Is Alice Vote for Alice", async () => {
+    const aliceData = treeData[0];
+    const proof = merkleDistributor.deriveProof(aliceData);
+
     const P = ed.Point.BASE;
     const votFor = alice.publicKey;
 
-    for (let i = 0; i < 15; i++) {
-      const randomsNumber: BN[] = [];
+    const randomsNumber: BN[] = [];
 
-      const votes = candidates.map((candidate) => {
-        const r = randomNumber();
-        randomsNumber.push(new BN(r));
-        const M = candidate.equals(votFor) ? P.multiply(1) : ed.Point.ZERO;
-        return M.add(pubkey.multiply(r)).toRawBytes(); // C = M + rG
-      });
+    const votes = candidates.map((candidate) => {
+      const r = randomNumber();
+      randomsNumber.push(new BN(r));
+      const M = candidate.equals(votFor) ? P.multiply(1) : ed.Point.ZERO;
+      return M.add(pubkey.multiply(r)).toRawBytes(); // C = M + rG
+    });
 
-      const randomReceipt = web3.Keypair.generate();
-      const tx = await program.methods
-        .vote(votes as any, randomsNumber as any)
-        .accounts({
-          authority: provider.publicKey,
-          proposal: proposal.publicKey,
-          receipt: randomReceipt.publicKey,
-          rent: PROGRAMS.rent,
-          systemProgram: PROGRAMS.systemProgram,
-        })
-        .transaction();
-      await provider.sendAndConfirm(tx, [randomReceipt]);
+    try {
+      await program.rpc.vote(
+        votes as any,
+        randomsNumber as any,
+        aliceData.salt as any,
+        proof as any,
+        {
+          accounts: {
+            authority: alice.publicKey,
+            proposal: proposal.publicKey,
+            receipt: aliceReceipt,
+            rent: PROGRAMS.rent,
+            systemProgram: PROGRAMS.systemProgram,
+          },
+          signers: [alice],
+        }
+      );
+    } catch (error) {
+      console.log(error);
     }
-
-    const data = await program.account.proposal.fetch(proposal.publicKey);
-    console.log("ballotBoxes after vote for Alice: ", data);
   });
 
-  it("Is Vote 5 times for Bob", async () => {
+  it("Is Me Vote for Bob", async () => {
+    const walletData = treeData[1];
+    const proof = merkleDistributor.deriveProof(walletData);
+
     const P = ed.Point.BASE;
     const votFor = bob.publicKey;
 
-    for (let i = 0; i < 5; i++) {
-      const randomsNumber: BN[] = [];
+    const randomsNumber: BN[] = [];
+    let total = ed.Point.ZERO;
+    const votes = candidates.map((candidate) => {
+      const r = randomNumber();
+      randomsNumber.push(new BN(r));
+      const M = candidate.equals(votFor) ? P.multiply(1) : ed.Point.ZERO;
+      total = total.add(M);
+      return M.add(pubkey.multiply(r)).toRawBytes(); // C = M + rG
+    });
 
-      const votes = candidates.map((candidate) => {
-        const r = randomNumber();
-        randomsNumber.push(new BN(r));
-        const M = candidate.equals(votFor) ? P.multiply(1) : ed.Point.ZERO;
-        return M.add(pubkey.multiply(r)).toRawBytes(); // C = M + rG
-      });
+    console.log("checkkkkkk", total.toRawBytes());
 
-      const randomReceipt = web3.Keypair.generate();
-      const tx = await program.methods
-        .vote(votes as any, randomsNumber as any)
-        .accounts({
-          authority: provider.publicKey,
-          proposal: proposal.publicKey,
-          receipt: randomReceipt.publicKey,
-          rent: PROGRAMS.rent,
-          systemProgram: PROGRAMS.systemProgram,
-        })
-        .transaction();
-      await provider.sendAndConfirm(tx, [randomReceipt]);
-    }
+    const tx = await program.methods
+      .vote(
+        votes as any,
+        randomsNumber as any,
+        walletData.salt as any,
+        proof as any
+      )
+      .accounts({
+        authority: provider.publicKey,
+        proposal: proposal.publicKey,
+        receipt: myReceipt,
+        rent: PROGRAMS.rent,
+        systemProgram: PROGRAMS.systemProgram,
+      })
+      .transaction();
 
-    const data = await program.account.proposal.fetch(proposal.publicKey);
-    console.log("ballotBoxes after vote for Bob:", data.ballotBoxes);
+    await provider.sendAndConfirm(tx, []);
   });
 
   it("Is Decrypt votes", async () => {
