@@ -1,4 +1,11 @@
 {
+  "name": "atbash",
+  "version": "1.0.0",
+  "main": "dist/app/index.js",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "start": "nodemon app/index.ts",
     "build": "npm run clean && tsc",

@@ -52,8 +52,4 @@ pub mod atbash_program {
     ) -> Result<()> {
         vote::exec(ctx, votes, random_numbers, salt, proof)
     }
-
-    pub fn math(ctx: Context<InitMath>, p: [u8; 32]) -> Result<()> {
-        formulae::exec_math_formulae(ctx, p)
-    }
 }
