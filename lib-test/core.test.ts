@@ -34,8 +34,8 @@ describe('Atbash', () => {
   })
 
   it('Is create Proposal', async () => {
-    const startTime = Date.now() / 1000
-    const endTime = Date.now() / 1000 + 18
+    const startTime = Date.now() / 1000 + 5
+    const endTime = Date.now() / 1000 + 50
     const { txId, proposalAddress } = await atbash.initializeProposal({
       candidates,
       voters,

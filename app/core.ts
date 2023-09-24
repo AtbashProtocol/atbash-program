@@ -36,10 +36,13 @@ class Atbash {
   }
 
   decrypt = async (C: ed.Point, R: ed.Point) => {
-    const { data } = await axios.post('http://localhost:10000/ec/decrypt', {
-      message: C.toHex(),
-      r: R.toHex(),
-    })
+    const { data } = await axios.post(
+      'https://atbash-system.onrender.com/ec/decrypt',
+      {
+        message: C.toHex(),
+        r: R.toHex(),
+      },
+    )
     return data.message
   }
 
