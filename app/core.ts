@@ -174,17 +174,17 @@ class Atbash {
     if (startDate.toNumber() * 1000 > now)
       throw new Error('Proposal not started!')
     if (endDate.toNumber() * 1000 > now) throw new Error('Proposal not ended!')
-
     const P = ed.Point.BASE
-    const decryptedPoints: ed.Point[] = []
-    ballotBoxes.forEach(async (ballot, i) => {
-      const C = ed.Point.fromHex(new Uint8Array(ballot))
-      const R = P.multiply(randomNumbers[i].toNumber())
-      const M = await this.decrypt(C, R) //M = C - R * x
-      decryptedPoints.push(ed.Point.fromHex(M))
-    })
-    const result: number[] = await BGSG(decryptedPoints)
 
+    const decryptedPoints = await Promise.all(
+      ballotBoxes.map(async (ballot, i) => {
+        const C = ed.Point.fromHex(new Uint8Array(ballot))
+        const R = P.multiply(randomNumbers[i].toNumber())
+        const M = await this.decrypt(C, R) //M = C - R * x
+        return ed.Point.fromHex(M)
+      }),
+    )
+    const result: number[] = await BGSG(decryptedPoints)
     return result
   }
 }
