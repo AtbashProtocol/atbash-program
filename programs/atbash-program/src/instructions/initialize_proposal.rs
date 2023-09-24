@@ -36,7 +36,7 @@ pub fn initialize(
 ) -> Result<()> {
     let proposal = &mut ctx.accounts.proposal;
     // Validate data
-    if start_date < current_timestamp().ok_or(ErrorCode::InvalidCurrentDate)? {
+    if start_date < current_timestamp().ok_or(ErrorCode::InvalidPoint)? {
         return err!(ErrorCode::InvalidStartDate);
     }
 

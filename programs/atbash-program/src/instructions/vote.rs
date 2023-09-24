@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use solana_zk_token_sdk::curve25519::edwards::*;
 
+use crate::constant::*;
 use crate::errors::ErrorCode;
 use crate::schema::proposal::*;
 use crate::schema::receipt::*;
@@ -44,7 +45,7 @@ pub fn exec(
     let receipt = &mut ctx.accounts.receipt;
 
     // Print receipt
-    let current = current_timestamp().ok_or(ErrorCode::InvalidCurrentDate)?;
+    let current = current_timestamp().ok_or(ErrorCode::InvalidPoint)?;
     receipt.authority = ctx.accounts.authority.key();
     receipt.proposal = ctx.accounts.proposal.key();
     receipt.locked_date = current;
@@ -62,19 +63,30 @@ pub fn exec(
     if !proposal.verify(proof, receipt.hash()) {
         return err!(ErrorCode::InvalidMerkleProof);
     }
-    let ballot_boxes = &mut proposal.ballot_boxes.clone();
+    //  Verify votes
+    let valid_sum_vote = proposal
+        .get_valid_sum(random_numbers.clone())
+        .ok_or(ErrorCode::InvalidPoint)?;
+    let sum_vote: &mut PodEdwardsPoint = &mut PodEdwardsPoint(ZERO);
+    for idx in 0..votes.len() {
+        let vote: PodEdwardsPoint = PodEdwardsPoint(votes[idx]);
+        *sum_vote = add_edwards(&sum_vote, &vote).ok_or(ErrorCode::InvalidPoint)?;
+    }
+    if valid_sum_vote != sum_vote.0 {
+        return err!(ErrorCode::InvalidVotes);
+    }
 
+    let ballot_boxes = &mut proposal.ballot_boxes.clone();
     // Update random numbers
     for idx in 0..proposal.random_numbers.len() {
         proposal.random_numbers[idx] = random_numbers[idx] + proposal.random_numbers[idx]
     }
-
     // Update votes
     for idx in 0..ballot_boxes.len() {
         let old_vote: PodEdwardsPoint = PodEdwardsPoint(ballot_boxes[idx]);
         let new_vote: PodEdwardsPoint = PodEdwardsPoint(votes[idx]);
 
-        let sum = add_edwards(&old_vote, &new_vote).ok_or(ErrorCode::InvalidCurrentDate)?;
+        let sum = add_edwards(&old_vote, &new_vote).ok_or(ErrorCode::InvalidPoint)?;
         proposal.ballot_boxes[idx] = sum.0
     }
 

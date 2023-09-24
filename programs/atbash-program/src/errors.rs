@@ -6,6 +6,12 @@ pub enum ErrorCode {
     InvalidMerkleProof,
     #[msg("Invalid votes")]
     InvalidVotes,
+    #[msg("Invalid Point")]
+    InvalidPoint,
+    #[msg("Cannot get current date")]
+    InvalidCurrentDate,
+    #[msg("Start date need to be greater than or equal to current date")]
+    InvalidStartDate,
     #[msg("The community isn't consenting on the proposal yet")]
     NotConsentedProposal,
     #[msg("The proposal isn't started yet")]
@@ -16,20 +22,4 @@ pub enum ErrorCode {
     StartedProposal,
     #[msg("The proposal had been ended")]
     EndedProposal,
-    #[msg("The proposal had been executed")]
-    ExecutedProposal,
-    #[msg("Invalid proposal instruction index")]
-    InvalidProposalIdx,
-    #[msg("No permission")]
-    NoPermission,
-    #[msg("Cannot derive the program address")]
-    NoBump,
-    #[msg("Cannot get current date")]
-    InvalidCurrentDate,
-    #[msg("Start date need to be greater than or equal to current date")]
-    InvalidStartDate,
-    #[msg("End date need to be greater than start date and current date")]
-    InvalidEndDate,
-    #[msg("Invalid NFT collection")]
-    InvalidNftCollection,
 }

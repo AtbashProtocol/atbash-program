@@ -9,20 +9,20 @@ export type Leaf = {
 export const LEAF_LEN = 64;
 
 export class MerkleDistributor {
-  public receipients: Leaf[];
+  public voters: Leaf[];
   public leafs: Buffer[];
 
-  constructor(receipients: Leaf[] = []) {
-    this.receipients = receipients;
+  constructor(voters: Leaf[] = []) {
+    this.voters = voters;
     this.leafs = MerkleDistributor.sort(
-      ...this.receipients.map((receipient) => this.getLeaf(receipient))
+      ...this.voters.map((receipient) => this.getLeaf(receipient))
     );
   }
 
   static sort = (...args: Buffer[]): Buffer[] => {
     return [...args].sort((a, b) => {
       const i = Buffer.compare(a, b);
-      if (i === 0) throw new Error("The receipients has a duplication");
+      if (i === 0) throw new Error("The voter has a duplication");
       return i;
     });
   };
@@ -44,7 +44,7 @@ export class MerkleDistributor {
    * @returns Total
    */
   getTotal = (): BN => {
-    let total: BN = new BN(this.receipients.length);
+    let total: BN = new BN(this.voters.length);
     return total;
   };
 
@@ -61,7 +61,7 @@ export class MerkleDistributor {
    * @returns Buffer.
    */
   toBuffer = () => {
-    return Buffer.concat(this.receipients.map(MerkleDistributor.serialize));
+    return Buffer.concat(this.voters.map(MerkleDistributor.serialize));
   };
 
   /**
@@ -117,7 +117,7 @@ export class MerkleDistributor {
 
   /**
    * Get merkle proof.
-   * @param data Receiptent data.
+   * @param data Voter data.
    * @returns Merkle proof.
    */
   deriveProof = (data: Leaf): Buffer[] => {
@@ -138,7 +138,7 @@ export class MerkleDistributor {
   /**
    * Verify a merkle proof.
    * @param proof Merkle proof.
-   * @param data Receiptent data.
+   * @param data Voter data.
    * @returns Valid.
    */
   verifyProof = (proof: Buffer[], data: Leaf): boolean => {

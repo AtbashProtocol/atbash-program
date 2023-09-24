@@ -66,7 +66,6 @@ describe("atbash-program", () => {
     provider.connection.requestAirdrop(alice.publicKey, 10 ** 9);
     provider.connection.requestAirdrop(bob.publicKey, 10 ** 9);
 
-    console.log(provider.publicKey);
     treeData = [alice.publicKey, provider.publicKey].map((publicKey, i) => ({
       authority: publicKey,
       salt: MerkleDistributor.salt(i.toString()),
@@ -120,14 +119,11 @@ describe("atbash-program", () => {
       })
       .transaction();
     await provider.sendAndConfirm(tx, [proposal]);
-    const data = await program.account.proposal.fetch(proposal.publicKey);
-    console.log("ballotBoxes====>", data.ballotBoxes);
   });
 
   it("Is Alice Vote for Alice", async () => {
     const aliceData = treeData[0];
     const proof = merkleDistributor.deriveProof(aliceData);
-
     const P = ed.Point.BASE;
     const votFor = alice.publicKey;
 
@@ -136,7 +132,7 @@ describe("atbash-program", () => {
     const votes = candidates.map((candidate) => {
       const r = randomNumber();
       randomsNumber.push(new BN(r));
-      const M = candidate.equals(votFor) ? P.multiply(1) : ed.Point.ZERO;
+      const M = candidate.equals(votFor) ? P : ed.Point.ZERO;
       return M.add(pubkey.multiply(r)).toRawBytes(); // C = M + rG
     });
 
@@ -170,16 +166,13 @@ describe("atbash-program", () => {
     const votFor = bob.publicKey;
 
     const randomsNumber: BN[] = [];
-    let total = ed.Point.ZERO;
-    const votes = candidates.map((candidate) => {
-      const r = randomNumber();
+    const votes = candidates.map((candidate, i) => {
+      let r = randomNumber();
       randomsNumber.push(new BN(r));
       const M = candidate.equals(votFor) ? P.multiply(1) : ed.Point.ZERO;
-      total = total.add(M);
-      return M.add(pubkey.multiply(r)).toRawBytes(); // C = M + rG
+      const a = M.add(pubkey.multiply(r));
+      return a.toRawBytes(); // C = M + rG
     });
-
-    console.log("checkkkkkk", total.toRawBytes());
 
     const tx = await program.methods
       .vote(
@@ -207,10 +200,10 @@ describe("atbash-program", () => {
     data.ballotBoxes.forEach((ballot, i) => {
       const C = ed.Point.fromHex(new Uint8Array(ballot));
       const R = P.multiply(data.randomNumbers[i].toNumber());
-      const M = C.subtract(R.multiply(privateKey));
+      const M = C.subtract(R.multiply(privateKey)); //M = C - R * x
       ballotBoxesDecrypted.push(M);
     });
-    const totalBallot = await BGSG(ballotBoxesDecrypted);
+    const totalBallot: number[] = await BGSG(ballotBoxesDecrypted);
     console.log("totalBallots", totalBallot);
   });
 });

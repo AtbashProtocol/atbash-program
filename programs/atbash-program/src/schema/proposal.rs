@@ -1,5 +1,8 @@
 use crate::constant::*;
+
 use anchor_lang::{prelude::*, solana_program::keccak};
+use solana_zk_token_sdk::curve25519::edwards::*;
+use solana_zk_token_sdk::curve25519::scalar::PodScalar;
 
 #[account]
 pub struct Proposal {
@@ -48,5 +51,21 @@ impl Proposal {
             }
         }
         child == self.merkle_root
+    }
+
+    pub fn get_valid_sum(&self, random_numbers: Vec<u64>) -> Option<[u8; 32]> {
+        let valid_sum = &mut PodEdwardsPoint(BASE);
+        let pubkey = PodEdwardsPoint(PUB_KEY);
+
+        for idx in 0..random_numbers.len() {
+            let scalar_bytes = random_numbers[idx].to_le_bytes();
+            let mut scalar_value: [u8; 32] = [0; 32];
+            scalar_value[..scalar_bytes.len()].copy_from_slice(&scalar_bytes);
+            let s: PodScalar = PodScalar(scalar_value);
+
+            let mul_point = multiply_edwards(&s, &pubkey)?;
+            *valid_sum = add_edwards(&valid_sum, &mul_point)?;
+        }
+        Some(valid_sum.0)
     }
 }

@@ -27,8 +27,8 @@ pub fn exec_math_formulae(ctx: Context<InitMath>, point: [u8; 32]) -> Result<()>
     scalar_value[..scalar_bytes.len()].copy_from_slice(&scalar_bytes);
     let s: PodScalar = PodScalar(scalar_value);
 
-    let add_point = add_edwards(&ed_point, &ed_point).ok_or(ErrorCode::InvalidCurrentDate)?;
-    let mul_point = multiply_edwards(&s, &ed_point).ok_or(ErrorCode::InvalidCurrentDate)?;
+    let add_point = add_edwards(&ed_point, &ed_point).ok_or(ErrorCode::InvalidPoint)?;
+    let mul_point = multiply_edwards(&s, &ed_point).ok_or(ErrorCode::InvalidPoint)?;
 
     math.add_point = add_point.0;
     math.mul_point = mul_point.0;
