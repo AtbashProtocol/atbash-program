@@ -3,7 +3,7 @@ import * as ed from '@noble/ed25519'
 import axios from 'axios'
 
 import { AtbashProgram, IDL } from '../target/types/atbash_program'
-import { AnchorWallet, ProposalData } from './types'
+import { ProposalData } from './types'
 import { BGSG, findReceipt, isAddress } from './utils'
 import { DEFAULT_PROGRAM_ID, DEFAULT_RPC_ENDPOINT, PUB_KEY } from './constant'
 import { Leaf, MerkleDistributor } from './merkleDistributor'
@@ -14,23 +14,17 @@ const PROGRAMS = {
 }
 
 class Atbash {
-  private _connection: web3.Connection
   private _provider: AnchorProvider
   private _pubkey = ed.Point.fromHex(PUB_KEY)
 
   readonly program: Program<AtbashProgram>
   constructor(
-    wallet: AnchorWallet,
-    rpcEndpoint: string = DEFAULT_RPC_ENDPOINT,
+    provider: AnchorProvider,
     programId: string = DEFAULT_PROGRAM_ID,
   ) {
     if (!isAddress(programId)) throw new Error('Invalid program id')
     // Private
-    this._connection = new web3.Connection(rpcEndpoint, 'confirmed')
-    this._provider = new AnchorProvider(this._connection, wallet, {
-      skipPreflight: true,
-      commitment: 'confirmed',
-    })
+    this._provider = provider
     // Public
     this.program = new Program<AtbashProgram>(IDL, programId, this._provider)
   }

@@ -1,7 +1,7 @@
-import { Wallet, web3 } from '@coral-xyz/anchor'
+import { AnchorProvider, Wallet, web3 } from '@coral-xyz/anchor'
 import { decode } from 'bs58'
 
-import Atbash from '../dist/app/core'
+import Atbash, { DEFAULT_RPC_ENDPOINT } from '../dist/app'
 import { Leaf, MerkleDistributor } from '../dist/app/merkleDistributor'
 
 const PRIV_KEY =
@@ -22,9 +22,15 @@ describe('Atbash', () => {
   const candidates = [alice.publicKey, bob.publicKey, carol.publicKey]
   const voters = [wallet.publicKey]
   let proposal = ''
-
   before(() => {
-    atbash = new Atbash(wallet)
+    const connection = new web3.Connection(DEFAULT_RPC_ENDPOINT, {
+      commitment: 'confirmed',
+    })
+    const provider = new AnchorProvider(connection, wallet, {
+      skipPreflight: true,
+      commitment: 'confirmed',
+    })
+    atbash = new Atbash(provider)
 
     treeData = voters.map((publicKey, i) => ({
       authority: publicKey,
