@@ -2,7 +2,10 @@
 seeds = false
 skip-lint = false
 [programs.localnet]
-atbash_program = "H7ZkmfbuFeMGWpo78N1vfpqmzxTrRUAvP7VmqEBTxzyA"
+atbash_program = "UjBYSytrhiqA4vV8NQGL13a59UJKTPgUmAs6fH1dhwm"
+
+[programs.devnet]
+atbash_program = "UjBYSytrhiqA4vV8NQGL13a59UJKTPgUmAs6fH1dhwm"
 
 [registry]
 url = "https://api.apr.dev"

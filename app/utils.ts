@@ -35,11 +35,11 @@ export const findReceipt = async (
   return receiptPublicKey
 }
 
-export const BGSG = async (points: ed.Point[]) => {
+export const BGSG = async (points: ed.Point[], totalVoter: number) => {
   const P = ed.Point.BASE
   const result = []
   for (const G of points) {
-    for (let j = 1; j <= 100; j++) {
+    for (let j = 1; j <= totalVoter; j++) {
       if (ed.Point.ZERO.equals(G)) {
         result.push(0)
         break

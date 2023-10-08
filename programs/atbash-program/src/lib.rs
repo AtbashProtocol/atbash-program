@@ -15,7 +15,7 @@ pub use constant::*;
 pub mod utils;
 pub use utils::*;
 
-declare_id!("H7ZkmfbuFeMGWpo78N1vfpqmzxTrRUAvP7VmqEBTxzyA");
+declare_id!("UjBYSytrhiqA4vV8NQGL13a59UJKTPgUmAs6fH1dhwm");
 
 #[program]
 pub mod atbash_program {

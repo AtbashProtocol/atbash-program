@@ -5,7 +5,7 @@ import axios from 'axios'
 import { AtbashProgram, IDL } from '../target/types/atbash_program'
 import { ProposalData } from './types'
 import { BGSG, findReceipt, isAddress } from './utils'
-import { DEFAULT_PROGRAM_ID, DEFAULT_RPC_ENDPOINT, PUB_KEY } from './constant'
+import { DEFAULT_PROGRAM_ID, PUB_KEY } from './constant'
 import { Leaf, MerkleDistributor } from './merkleDistributor'
 
 const PROGRAMS = {
@@ -41,8 +41,8 @@ class Atbash {
   }
 
   randomNumber = () => {
-    const min = 1
-    const max = 1_000
+    const min = 1_00
+    const max = 100_000_000
     return Math.floor(Math.random() * (max - min + 1)) + min
   }
 
@@ -97,6 +97,7 @@ class Atbash {
     })
     const merkleDistributor = this.getMerkleDistributor(voters)
     const merkleRoot = merkleDistributor.deriveMerkleRoot()
+    const commitment = this.randomNumber()
 
     const tx = await this.program.methods
       .initializeProposal(
@@ -107,6 +108,7 @@ class Atbash {
         ballotBoxes as any,
         randomsNumber as any,
         [...merkleRoot],
+        new BN(commitment),
       )
       .accounts({
         authority: this._provider.publicKey,
@@ -124,11 +126,13 @@ class Atbash {
     proof,
     data,
     votFor,
+    commitment,
   }: {
     proposalAddress: string
     proof: Array<Buffer>
     data: Leaf
     votFor: web3.PublicKey
+    commitment: number
   }) => {
     if (!isAddress(proposalAddress))
       throw new Error('Invalid distributor address')
@@ -142,16 +146,33 @@ class Atbash {
 
     const P = ed.Point.BASE
     const randomsNumber: BN[] = []
+    const proof_t: Uint8Array[] = []
+    const proof_r: BN[] = []
 
     const votes = candidates.map((candidate) => {
-      const r = this.randomNumber()
-      randomsNumber.push(new BN(r))
+      const x = this.randomNumber()
+      randomsNumber.push(new BN(x))
+
+      const v = this.randomNumber()
+      const T = this._pubkey.multiply(v)
+      // r = v + cx
+      const r = v + commitment * x
+      proof_r.push(new BN(r))
+      proof_t.push(T.toRawBytes())
+
       const M = candidate.equals(votFor) ? P : ed.Point.ZERO
-      return M.add(this._pubkey.multiply(r)).toRawBytes() // C = M + rG
+      return M.add(this._pubkey.multiply(x)).toRawBytes() // C = M + rG
     })
 
     const tx = await this.program.methods
-      .vote(votes as any, randomsNumber as any, data.salt as any, proof as any)
+      .vote(
+        votes as any,
+        randomsNumber as any,
+        data.salt as any,
+        proof as any,
+        proof_t as any,
+        proof_r,
+      )
       .accounts({
         authority: this._provider.publicKey,
         proposal: proposalAddress,
@@ -164,7 +185,13 @@ class Atbash {
     return { txId, tx }
   }
 
-  getResult = async ({ proposalAddress }: { proposalAddress: string }) => {
+  getResult = async ({
+    proposalAddress,
+    totalVoter,
+  }: {
+    proposalAddress: string
+    totalVoter: number
+  }) => {
     const { startDate, endDate, ballotBoxes, randomNumbers, candidates } =
       await this.getProposalData(proposalAddress)
     const now = Date.now()
@@ -181,7 +208,7 @@ class Atbash {
         return ed.Point.fromHex(M)
       }),
     )
-    const result: number[] = await BGSG(decryptedPoints)
+    const result: number[] = await BGSG(decryptedPoints, totalVoter)
     return result
   }
 }
