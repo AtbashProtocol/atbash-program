@@ -4,6 +4,8 @@ use anchor_lang::{prelude::*, solana_program::keccak};
 use solana_zk_token_sdk::curve25519::edwards::*;
 use solana_zk_token_sdk::curve25519::scalar::PodScalar;
 
+use crate::utils::u64_to_pod_scalar;
+
 #[account]
 pub struct Proposal {
     pub authority: Pubkey,
@@ -14,6 +16,7 @@ pub struct Proposal {
     pub end_date: i64,
     pub metadata: [u8; 32],
     pub merkle_root: [u8; 32],
+    pub commitment: u64,
 }
 
 impl Proposal {
@@ -25,13 +28,14 @@ impl Proposal {
         + I64_SIZE
         + I64_SIZE
         + U8_SIZE * 32
-        + U8_SIZE * 32;
+        + U8_SIZE * 32
+        + U64_SIZE;
 
     pub fn is_started(&self, current_time: i64) -> bool {
         if self.start_date == 0 {
             return true;
         }
-        return self.start_date <= current_time;
+        return self.start_date < current_time;
     }
 
     pub fn is_ended(&self, current_time: i64) -> bool {
@@ -58,14 +62,41 @@ impl Proposal {
         let pubkey = PodEdwardsPoint(PUB_KEY);
 
         for idx in 0..random_numbers.len() {
-            let scalar_bytes = random_numbers[idx].to_le_bytes();
-            let mut scalar_value: [u8; 32] = [0; 32];
-            scalar_value[..scalar_bytes.len()].copy_from_slice(&scalar_bytes);
-            let s: PodScalar = PodScalar(scalar_value);
+            let s: PodScalar = u64_to_pod_scalar(random_numbers[idx])?;
 
             let mul_point = multiply_edwards(&s, &pubkey)?;
             *valid_sum = add_edwards(&valid_sum, &mul_point)?;
         }
         Some(valid_sum.0)
+    }
+
+    pub fn valid_votes(
+        &self,
+        votes: Vec<[u8; 32]>,
+        proof_t: Vec<[u8; 32]>,
+        proof_r: Vec<u64>,
+    ) -> Option<bool> {
+        /*  prove: 2n-1 vote have shape: vote = random_number * pubkey */
+        let g = PodEdwardsPoint(PUB_KEY);
+        let c = u64_to_pod_scalar(self.commitment)?;
+        let mut result: Vec<bool> = Vec::new();
+
+        for idx in 0..votes.len() {
+            /* commit: T = Gr - Pc */
+            let p = PodEdwardsPoint(votes[idx]);
+            let p_c = multiply_edwards(&c, &p)?;
+
+            let r = u64_to_pod_scalar(proof_r[idx])?;
+            let g_r = multiply_edwards(&r, &g)?;
+
+            let t = PodEdwardsPoint(proof_t[idx]);
+            let diff = subtract_edwards(&g_r, &p_c)?;
+
+            if diff.eq(&t) {
+                result.push(true);
+            }
+        }
+
+        Some(result.len() == votes.len() - 1)
     }
 }

@@ -33,6 +33,7 @@ pub fn initialize(
     ballot_boxes: Vec<[u8; 32]>,
     random_numbers: Vec<u64>,
     merkle_root: [u8; 32],
+    commitment: u64,
 ) -> Result<()> {
     let proposal = &mut ctx.accounts.proposal;
     // Validate data
@@ -48,6 +49,7 @@ pub fn initialize(
     proposal.ballot_boxes = ballot_boxes;
     proposal.random_numbers = random_numbers;
     proposal.merkle_root = merkle_root;
+    proposal.commitment = commitment;
 
     emit!(InitializeProposalEvent {
         proposal: proposal.key(),

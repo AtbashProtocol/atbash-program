@@ -41,6 +41,8 @@ pub fn exec(
     random_numbers: Vec<u64>,
     salt: [u8; 32],
     proof: Vec<[u8; 32]>,
+    proof_t: Vec<[u8; 32]>,
+    proof_r: Vec<u64>,
 ) -> Result<()> {
     let receipt = &mut ctx.accounts.receipt;
 
@@ -59,11 +61,12 @@ pub fn exec(
     if !proposal.is_started(current) {
         return err!(ErrorCode::NotStartedProposal);
     }
+
     //Verify merkle proof
     if !proposal.verify(proof, receipt.hash()) {
         return err!(ErrorCode::InvalidMerkleProof);
     }
-    //  Verify votes
+    //  Soundness 1 : A + B + C = G
     let valid_sum_vote = proposal
         .get_valid_sum(random_numbers.clone())
         .ok_or(ErrorCode::InvalidPoint)?;
@@ -73,6 +76,14 @@ pub fn exec(
         *sum_vote = add_edwards(&sum_vote, &vote).ok_or(ErrorCode::InvalidPoint)?;
     }
     if valid_sum_vote != sum_vote.0 {
+        return err!(ErrorCode::InvalidVotes);
+    }
+
+    // Soundness 2;
+    if !proposal
+        .valid_votes(votes.clone(), proof_t, proof_r)
+        .ok_or(ErrorCode::InvalidPoint)?
+    {
         return err!(ErrorCode::InvalidVotes);
     }
 
