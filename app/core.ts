@@ -209,7 +209,16 @@ class Atbash {
       }),
     )
     const result: number[] = await BGSG(decryptedPoints, totalVoter)
-    return result
+    const bnResult = result.map((e) => new BN(e))
+    const tx = await this.program.methods
+      .submitResult(bnResult)
+      .accounts({
+        authority: this._provider.publicKey,
+        proposal: proposalAddress,
+        ...PROGRAMS,
+      })
+      .transaction()
+    return { result, tx }
   }
 }
 

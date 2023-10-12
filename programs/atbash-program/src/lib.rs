@@ -15,7 +15,7 @@ pub use constant::*;
 pub mod utils;
 pub use utils::*;
 
-declare_id!("UjBYSytrhiqA4vV8NQGL13a59UJKTPgUmAs6fH1dhwm");
+declare_id!("ascnfBsat1jv2jrcZZLkVKuzdbuWuCnqmGyXvMTvhm9");
 
 #[program]
 pub mod atbash_program {
@@ -55,5 +55,9 @@ pub mod atbash_program {
         proof_r: Vec<u64>,
     ) -> Result<()> {
         vote::exec(ctx, votes, random_numbers, salt, proof, proof_t, proof_r)
+    }
+
+    pub fn submit_result(ctx: Context<SubmitResult>, result: Vec<u64>) -> Result<()> {
+        submit_result::submit(ctx, result)
     }
 }

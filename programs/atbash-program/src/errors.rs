@@ -22,4 +22,10 @@ pub enum ErrorCode {
     StartedProposal,
     #[msg("The proposal had been ended")]
     EndedProposal,
+    #[msg("Invalid result length!")]
+    InvalidResultLength,
+    #[msg("Invalid result value!")]
+    InvalidResultValue,
+    #[msg("Invalid authority!")]
+    InvalidAuthority,
 }

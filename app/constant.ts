@@ -1,5 +1,5 @@
 export const DEFAULT_RPC_ENDPOINT = 'https://api.devnet.solana.com'
-export const DEFAULT_PROGRAM_ID = 'UjBYSytrhiqA4vV8NQGL13a59UJKTPgUmAs6fH1dhwm'
+export const DEFAULT_PROGRAM_ID = 'ascnfBsat1jv2jrcZZLkVKuzdbuWuCnqmGyXvMTvhm9'
 
 export const PUB_KEY = new Uint8Array([
   42, 132, 140, 48, 238, 226, 92, 129, 26, 96, 109, 173, 144, 131, 255, 36, 229,

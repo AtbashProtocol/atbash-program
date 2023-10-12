@@ -1,8 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::errors::ErrorCode;
 use crate::schema::proposal::*;
-use crate::utils::current_timestamp;
 
 #[event]
 pub struct InitializeProposalEvent {
@@ -36,10 +34,6 @@ pub fn initialize(
     commitment: u64,
 ) -> Result<()> {
     let proposal = &mut ctx.accounts.proposal;
-    // Validate data
-    if start_date < current_timestamp().ok_or(ErrorCode::InvalidPoint)? {
-        return err!(ErrorCode::InvalidStartDate);
-    }
 
     proposal.authority = ctx.accounts.authority.key();
     proposal.candidates = candidates.clone();
@@ -50,6 +44,7 @@ pub fn initialize(
     proposal.random_numbers = random_numbers;
     proposal.merkle_root = merkle_root;
     proposal.commitment = commitment;
+    // proposal.result = vec![0; candidates.len()];
 
     emit!(InitializeProposalEvent {
         proposal: proposal.key(),

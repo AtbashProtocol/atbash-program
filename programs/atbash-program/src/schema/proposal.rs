@@ -17,6 +17,7 @@ pub struct Proposal {
     pub metadata: [u8; 32],
     pub merkle_root: [u8; 32],
     pub commitment: u64,
+    pub result: Vec<u64>,
 }
 
 impl Proposal {
@@ -29,13 +30,14 @@ impl Proposal {
         + I64_SIZE
         + U8_SIZE * 32
         + U8_SIZE * 32
-        + U64_SIZE;
+        + U64_SIZE
+        + MAXIMUM_MINT_NUMBER * U64_SIZE;
 
     pub fn is_started(&self, current_time: i64) -> bool {
         if self.start_date == 0 {
             return true;
         }
-        return self.start_date < current_time;
+        return self.start_date <= current_time;
     }
 
     pub fn is_ended(&self, current_time: i64) -> bool {

@@ -12,9 +12,8 @@ import {
   TOKEN_PROGRAM_ID,
 } from '@coral-xyz/anchor/dist/cjs/utils/token'
 import * as ed from '@noble/ed25519'
-import { BGSG, bigintToUint8Array } from './utils'
+import { BGSG } from './utils'
 import { Leaf, MerkleDistributor } from '../app'
-import { keccak256 } from 'js-sha3'
 
 const { data: PRIMARY_DUMMY_METADATA } = Buffer.from(
   'b2b68b298b9bfa2dd2931cd879e5c9997837209476d25319514b46f7b7911d31',
@@ -121,6 +120,8 @@ describe('atbash-program', () => {
       })
       .transaction()
     await provider.sendAndConfirm(tx, [proposal])
+    const fetch = await program.account.proposal.fetch(proposal.publicKey)
+    console.log(fetch)
   })
 
   it('Is Alice Vote for Alice', async () => {
@@ -233,7 +234,31 @@ describe('atbash-program', () => {
       ballotBoxesDecrypted.push(M)
     })
     const totalBallot: number[] = await BGSG(ballotBoxesDecrypted)
-    console.log('totalBallots', totalBallot)
+    const bnResult = totalBallot.map((e) => new BN(e))
+    // const tx = await program.methods
+    //   .submitResult(bnResult)
+    //   .accounts({
+    //     authority: provider.publicKey,
+    //     proposal: proposal.publicKey,
+    //     ...PROGRAMS,
+    //   })
+    //   .transaction()
+
+    try {
+      await program.rpc.submitResult(bnResult, {
+        accounts: {
+          authority: provider.publicKey,
+          proposal: proposal.publicKey,
+          ...PROGRAMS,
+        },
+        signers: [],
+      })
+    } catch (error) {
+      console.log(error)
+    }
+    // await provider.sendAndConfirm(tx, [])
+    const fetch = await program.account.proposal.fetch(proposal.publicKey)
+    console.log(fetch)
   })
 
   it('Is soundness work', async () => {
